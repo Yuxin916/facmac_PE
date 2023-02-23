@@ -1,0 +1,51 @@
+constraints:
+  max_v: 3.0
+  min_v: 0.0
+  max_v_acc: 0.7
+  max_w: 0.5235987755982988
+  max_w_acc: 5.235987755982988
+  boundary_wall:
+  - -10
+  - 10
+  - 10
+  - -10
+agent:
+  pursuer:
+    'n': 3
+    x: -5.0
+    'y': -3.0
+    yaw: 0.0
+    radius: 0.2
+    fixed: true
+  evader:
+    'n': 1
+    x: 0.0
+    'y': 1.0
+    yaw: 0.0
+    radius: 0.2
+    fixed: true
+obstacle:
+  radius: 0.3
+  o_coordinates:
+  - - 0.0
+    - -4.0
+  - - 4.0
+    - 2.0
+  - - -2.0
+    - 1.0
+  - - -8.0
+    - 4.0
+  - - 7.0
+    - 9.0
+  fixed: true
+max_init_distance: 5.0
+time_step: 0.1
+laser:
+  max_laser_angle: 3.1415926
+  min_laser_angle: -3.1415926
+  step_laser_angle: 0.017453292519943295
+  laser_range: 3.0
+  laser_sample_resolution: 0.1
+  laser_sample_resolution_scale: 1.5
+train:
+  episode_timelimit: 500

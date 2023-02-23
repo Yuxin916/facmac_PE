@@ -18,6 +18,8 @@ class EpisodeRunner:
 
         if 'sc2' in self.args.env:
             self.env = env_REGISTRY[self.args.env](**self.args.env_args)
+        if 'PE' in self.args.env:
+            self.env = env_REGISTRY[self.args.env]
         else:
             self.env = env_REGISTRY[self.args.env](env_args=self.args.env_args, args=args)
 
@@ -86,15 +88,30 @@ class EpisodeRunner:
                     assert (reward[1:] == reward[:-1]), "reward has to be cooperative!"
                     reward = reward[0]
                 episode_return += reward
-            else:
-                reward, terminated, env_info = self.env.step(actions[0].cpu())
-                episode_return += reward
 
-            post_transition_data = {
-                "actions": actions,
-                "reward": [(reward,)],
-                "terminated": [(terminated != env_info.get("episode_limit", False),)],
-            }
+                post_transition_data = {
+                    "actions": actions,
+                    "reward": [(reward,)],
+                    "terminated": [(terminated != env_info.get("episode_limit", False),)],
+                }
+            elif self.args.env in ["PE"]:
+                cpu_actions = copy.deepcopy(actions).to("cpu").numpy()
+                _, reward, done_n, truncate_n, env_info = self.env.step(cpu_actions[0])
+                if all(truncate_n):
+                    pass
+                terminated = any(done_n) or any(truncate_n)
+                if isinstance(reward, (list, tuple, np.ndarray)):
+                    assert (reward[1:].all() == reward[:-1].all()), "reward has to be cooperative!"
+                    reward = reward[0]
+                episode_return += reward
+                post_transition_data = {
+                    "actions": actions,
+                    "reward": [(reward,)],
+                    "terminated": [(terminated,)],
+                    # "Collision": [(env_info.get("Collision"),)],
+                    # "both_catch": [(env_info.get("both_catch"),)]
+                }
+
 
             self.batch.update(post_transition_data, ts=self.t)
 

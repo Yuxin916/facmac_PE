@@ -1,4 +1,7 @@
 from functools import partial
+import os
+import yaml
+from src.envs.PE.pursuit_ma_env import PursuitMAEnv
 
 from .multiagentenv import MultiAgentEnv
 # from .matrix_game.cts_matrix_game import Matrixgame as CtsMatrix
@@ -18,3 +21,14 @@ REGISTRY["particle"] = partial(env_fn, env=Particle)
 # REGISTRY["manyagent_swimmer"] = partial(env_fn, env=ManyAgentSwimmerEnv)
 # REGISTRY["manyagent_ant"] = partial(env_fn, env=ManyAgentAntEnv)
 # REGISTRY["sc2"] = partial(env_fn, env=StarCraft2Env)
+
+file_name = os.path.join(os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'config')),"envs", "{}.yaml"
+        .format('PE'))
+with open(file_name,'r') as f:
+    try:
+        config_dict = yaml.safe_load(f)
+    except yaml.YAMLError as exc:
+        assert False, "{}.yaml error: {}".format('PE', exc)
+
+env = PursuitMAEnv(config_dict)
+REGISTRY["PE"] = env

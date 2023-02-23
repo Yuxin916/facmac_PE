@@ -7,7 +7,7 @@ from envs.multiagentenv import MultiAgentEnv
 from envs.particle.environment import MultiAgentEnv as OpenAIMultiAgentEnv
 from envs.particle import scenarios
 from gym import spaces
-from utils import dict2namedtuple as d2nt
+# from utils import dict2namedtuple as d2nt
 
 
 class Particle(MultiAgentEnv):
