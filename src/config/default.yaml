@@ -51,7 +51,7 @@ repeat_id: 1
 label: "default_label"
 run_mode: "sequential"
 n_runners: 1
-continuous_actions: False
+continuous_actions: True
 debug: False
 buffer_mode: "transitions"
 n_train: 1
