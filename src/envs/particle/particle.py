@@ -113,7 +113,8 @@ class Particle(MultiAgentEnv):
         return state_size
 
     def get_avail_actions(self):
-        return np.ones((self.n_agents, self.get_total_actions()))
+        a = np.ones((self.n_agents, self.get_total_actions()))
+        return a
 
     def get_avail_agent_actions(self, agent_id):
         """ Returns the available actions for agent_id """

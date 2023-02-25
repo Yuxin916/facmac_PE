@@ -87,6 +87,7 @@ def run_sequential(args, logger):
 
     # Init runner so we can get env info
     runner = r_REGISTRY[args.runner](args=args, logger=logger)
+    # args --> /src/config/algs/facmac_pp/xxxx.yaml
 
     # Set up schemes and groups here
     if 'particle' not in args.env and "PE" not in args.env:
@@ -182,7 +183,7 @@ def run_sequential(args, logger):
             "state": {"vshape": env_info["state_shape"]},
             "obs": {"vshape": env_info["obs_shape"], "group": "agents"},
             "actions": {"vshape": (actions_vshape,), "group": "agents", "dtype": action_dtype},
-            "avail_actions": {"vshape": (env_info["n_actions"],), "group": "agents", "dtype": th.int},
+            "avail_actions": {"vshape": (env_info["n_actions"],), "group": "agents", "dtype": th.int}, # todo: WHY INTEGER TYPE
             "reward": {"vshape": (1,)},
             "terminated": {"vshape": (1,), "dtype": th.uint8},
         }
@@ -191,6 +192,7 @@ def run_sequential(args, logger):
         }
 
         if not args.actions_dtype == np.float32:
+            # discrete action
             preprocess = {
                 "actions": ("actions_onehot", [OneHot(out_dim=args.n_actions)])
             }
@@ -201,7 +203,8 @@ def run_sequential(args, logger):
                           preprocess=preprocess,
                           device="cpu" if args.buffer_cpu_only else args.device)
 
-    # Setup multiagent controller here
+    # Setup multi-agent controller here
+    # args.mac: cqmix_mac
     mac = mac_REGISTRY[args.mac](buffer.scheme, groups, args)
 
     # Give runner the scheme
@@ -266,15 +269,23 @@ def run_sequential(args, logger):
 
             if buffer.can_sample(args.batch_size) and (buffer.episodes_in_buffer > getattr(args, "buffer_warmup", 0)):
                 episode_sample = buffer.sample(args.batch_size)
+                # (batch_size * max_timestep per episode * num_agent * **kwarg)
 
-                # Truncate batch to only filled timesteps
+                # for testing
+                # eps_length_in_sampled_batch = []
+                # for i in range(args.batch_size):
+                #     eps_length_in_sampled_batch.append(int(th.where(episode_sample[i].data.transition_data['reward'][0] == 0)[0][0]))
+                # print(eps_length_in_sampled_batch)
+
                 max_ep_t = episode_sample.max_t_filled()
+
                 episode_sample = episode_sample[:, :max_ep_t]
 
                 if episode_sample.device != args.device:
                     episode_sample.to(args.device)
 
                 learner.train(episode_sample, runner.t_env, episode)
+
         elif getattr(args, "runner_scope", "episode") == "transition":
             runner.run(test_mode=False,
                        buffer=buffer,

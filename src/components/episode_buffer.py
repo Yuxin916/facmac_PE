@@ -499,8 +499,11 @@ class ReplayBuffer(EpisodeBatch):
         return self.episodes_in_buffer >= batch_size
 
     def sample(self, batch_size):
+
         assert self.can_sample(batch_size)
+
         if self.episodes_in_buffer == batch_size:
+            # selects all of them and creates a copy of them as a batch.
             out_batch = self[:batch_size].clone().share().to(self.out_device)
             return out_batch.to(self.out_device)
         else:

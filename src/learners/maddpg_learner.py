@@ -38,13 +38,20 @@ class MADDPGLearner:
 
     def train(self, batch: EpisodeBatch, t_env: int, episode_num: int):
         # Get the relevant quantities
+        # (batch x time_step_truncated x agent_num x **kwarg)
+        '''
+        :-1 here without the last time step.
+        because the last time step does not have a next time step to predict, so it is not used for training the model.
+        '''
         rewards = batch["reward"][:, :-1]
         actions = batch["actions"][:, :-1]
         terminated = batch["terminated"][:, :-1].float()
         mask = batch["filled"][:, :-1].float()
         mask[:, 1:] = mask[:, 1:] * (1 - terminated[:, :-1])
 
-        # Train the critic batched
+        '''
+        Action taken. 
+        '''
         target_actions = []
         self.target_mac.init_hidden(batch.batch_size)
         for t in range(batch.max_seq_length):
@@ -53,6 +60,11 @@ class MADDPGLearner:
             target_actions.append(agent_target_outs)
         target_actions = th.stack(target_actions, dim=1)  # Concat over time
 
+        '''
+        Centralized Critic. 
+        Input: all agents observation (states) and all agents action for batch size 
+        Output: (num of episode, time step per episode, Q value for each step)
+        '''
         q_taken = []
         for t in range(batch.max_seq_length - 1):
             inputs = self._build_inputs(batch, t=t)
@@ -60,7 +72,15 @@ class MADDPGLearner:
             critic_out = critic_out.view(batch.batch_size, -1, 1)
             q_taken.append(critic_out)
         q_taken = th.stack(q_taken, dim=1)
+        q_taken = q_taken.view(batch.batch_size, -1, 1)
 
+
+        '''
+        Target Centralized Critic. 
+        Input: all agents observation (states) and all agents action for batch size 
+        Output: (num of episode, time step per episode, Q value for each step)
+        *** NOTE: the time step interation here is one step afterwards than the Centralized Critic. make s, a to s',a'
+        '''
         target_vals = []
         for t in range(1, batch.max_seq_length):
             target_inputs = self._build_inputs(batch, t=t)
@@ -68,21 +88,26 @@ class MADDPGLearner:
             target_critic_out = target_critic_out.view(batch.batch_size, -1, 1)
             target_vals.append(target_critic_out)
         target_vals = th.stack(target_vals, dim=1)
-
-        q_taken = q_taken.view(batch.batch_size, -1, 1)
         target_vals = target_vals.view(batch.batch_size, -1, 1)
-        targets = rewards.expand_as(target_vals) + self.args.gamma * (1 - terminated.expand_as(target_vals)) * target_vals
 
+        '''
+        Target Q ground truth r+gamma*Q_target(s',a')
+        '''
+        targets = rewards.expand_as(target_vals) + self.args.gamma * (1 - terminated.expand_as(target_vals)) * target_vals
         td_error = (q_taken - targets.detach())
         mask = mask.expand_as(td_error)
         masked_td_error = td_error * mask
         loss = (masked_td_error ** 2).sum() / mask.sum()
 
+        # Optimise critics
         self.critic_optimiser.zero_grad()
         loss.backward()
-        critic_grad_norm = th.nn.utils.clip_grad_norm_(self.critic_params, self.args.grad_norm_clip)
+        critic_grad_norm = th.nn.utils.clip_grad_norm_(self.critic_params, self.args.grad_norm_clip) # maximum allowed norm value to prevent the exploding gradient
         self.critic_optimiser.step()
 
+        '''
+        Actor
+        '''
         mac_out = []
         chosen_action_qvals = []
         self.mac.init_hidden(batch.batch_size)
@@ -102,6 +127,7 @@ class MADDPGLearner:
         pi = mac_out
 
         # Compute the actor loss
+        # Update actor policy using the sampled policy gradient:
         pg_loss = -chosen_action_qvals.mean() + (pi**2).mean() * 1e-3
 
         # Optimise agents

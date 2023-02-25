@@ -10,7 +10,7 @@ class CQMixMAC(BasicMAC):
 
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False, past_actions=None, critic=None,
                        target_mac=False, explore_agent_ids=None):
-        avail_actions = ep_batch["avail_actions"][bs, t_ep]
+        # avail_actions = ep_batch["avail_actions"][bs, t_ep]
 
         if t_ep is not None and t_ep > 0:
             past_actions = ep_batch["actions"][:, t_ep-1]
@@ -20,11 +20,13 @@ class CQMixMAC(BasicMAC):
 
         # Note batch_size_run is set to be 1 in our experiments
         if self.args.agent in ["naf", "mlp", "rnn"]:
+            # (num_agents, action_dim)
             chosen_actions = self.forward(ep_batch[bs],
                                           t_ep,
                                           hidden_states=self.hidden_states[bs],
                                           test_mode=test_mode,
                                           select_actions=True)["actions"] # just to make sure detach
+            # (1,num_agents, action_dim)
             chosen_actions = chosen_actions.view(ep_batch[bs].batch_size, self.n_agents, self.args.n_actions).detach()
             pass
         elif self.args.agent == "icnn":
@@ -60,6 +62,9 @@ class CQMixMAC(BasicMAC):
 
         # Now do appropriate noising
         exploration_mode = getattr(self.args, "exploration_mode", "gaussian")
+            # If the args object has an attribute named exploration_mode, the getattr function returns its value.
+            # If the args object does not have this attribute, the function returns a default value of "gaussian".
+
         # Ornstein-Uhlenbeck:
         if not test_mode:  # do exploration
             if exploration_mode == "ornstein_uhlenbeck":
@@ -78,6 +83,12 @@ class CQMixMAC(BasicMAC):
                 act_noise = getattr(self.args, "act_noise", 0.1)
                 if t_env >= start_steps:
                     if explore_agent_ids is None:
+                        '''
+                        If all agents should explore, the code creates a new tensor x that has the same shape 
+                        as chosen_actions, and fills it with zeros. It then adds Gaussian noise to chosen_actions 
+                        by multiplying the standard deviation of the noise act_noise with a tensor of the same shape as x, 
+                        filled with samples drawn from a standard normal distribution using the normal_() method.
+                        '''
                         x = chosen_actions.clone().zero_()
                         chosen_actions += act_noise * x.clone().normal_()
                     else:
@@ -90,7 +101,9 @@ class CQMixMAC(BasicMAC):
                     else:
                         chosen_actions = th.from_numpy(np.array([[self.args.action_spaces[i].sample() for i in range(self.n_agents)] for _ in range(ep_batch[bs].batch_size)])).float().to(device=ep_batch.device)
 
-        # For continuous actions, now clamp actions to permissible action range (necessary after exploration)
+        '''
+        For continuous actions, now clamp actions to permissible action range (necessary after adding noise forexploration)
+        '''
         if all([isinstance(act_space, spaces.Box) for act_space in self.args.action_spaces]):
             for _aid in range(self.n_agents):
                 for _actid in range(self.args.action_spaces[_aid].shape[0]):
@@ -105,15 +118,20 @@ class CQMixMAC(BasicMAC):
                     tmp_idx = _actid + self.args.action_spaces[_aid].spaces[0].shape[0]
                     chosen_actions[:, _aid, tmp_idx].clamp_(self.args.action_spaces[_aid].spaces[1].low[_actid],
                                                             self.args.action_spaces[_aid].spaces[1].high[_actid])
+
         return chosen_actions
 
     def get_weight_decay_weights(self):
         return self.agent.get_weight_decay_weights()
 
     def forward(self, ep_batch, t, actions=None, hidden_states=None, select_actions=False, test_mode=False):
+        # obs + action + one hot agent index
         agent_inputs = self._build_inputs(ep_batch, t)
+        # RNN agent (qmix agent, mlp agent, comix agent...)
         ret = self.agent(agent_inputs, self.hidden_states, actions=actions)
+
         if select_actions:
+            # updated hidden state for next time step input
             self.hidden_states = ret["hidden_state"]
             return ret
         agent_outs = ret["Q"]

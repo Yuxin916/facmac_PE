@@ -11,6 +11,9 @@ import random
 class EpisodeRunner:
 
     def __init__(self, args, logger):
+        '''
+        args --> /src/config/algs/facmac_pp/xxxx.yaml
+        '''
         self.args = args
         self.logger = logger
         self.batch_size = self.args.batch_size_run
@@ -37,6 +40,7 @@ class EpisodeRunner:
         self.log_train_stats_t = -1000000
 
     def setup(self, scheme, groups, preprocess, mac):
+        # EpisodeBatch is in episode_buffer.py. It is a class
         self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + 1,
                                  preprocess=preprocess, device=self.args.device)
         self.mac = mac
@@ -77,7 +81,7 @@ class EpisodeRunner:
                                                       explore=(not test_mode))
             else:
                 actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
-
+                # (1,num_agents, action_dim)
             if getattr(self.args, "action_selector", "epsilon_greedy") == "gumbel":
                 actions = th.argmax(actions, dim=-1).long()
 
@@ -97,8 +101,13 @@ class EpisodeRunner:
             elif self.args.env in ["PE"]:
                 cpu_actions = copy.deepcopy(actions).to("cpu").numpy()
                 _, reward, done_n, truncate_n, env_info = self.env.step(cpu_actions[0])
-                if all(truncate_n):
-                    pass
+
+                # for key in env_info.keys():
+                #     env_info[key] = any(env_info[key])
+                env_info['Collision'] = any(env_info['Collision'])
+                env_info['Caught'] = any(env_info['Caught'])
+                env_info['Time_limit_reached'] = any(env_info['Time_limit_reached'])
+
                 terminated = any(done_n) or any(truncate_n)
                 if isinstance(reward, (list, tuple, np.ndarray)):
                     assert (reward[1:].all() == reward[:-1].all()), "reward has to be cooperative!"

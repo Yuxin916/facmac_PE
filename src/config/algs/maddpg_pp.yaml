@@ -1,14 +1,14 @@
 # --- MADDPG specific parameters ---
 action_range: ~
 action_selector: ~
-agent: rnn
+agent: mlp
 obs_agent_id: True # Include the agent's one_hot id in the observation
 obs_last_action: True # Include the agent's last action (one_hot) in the observation
 agent_output_type: ~
 batch_size_run: 1
-batch_size: 32
-buffer_size: 5000
-buffer_warmup: 0
+batch_size: 32 # batch of episodes that sample for training
+buffer_size: 5000 # totally number of episodes the buffer can contain
+buffer_warmup: 2 # wait for there are 100 episodes in buffer and start training
 discretize_actions: False
 double_q: False
 epsilon_decay_mode: ~
@@ -22,12 +22,12 @@ ou_theta: 0.15 # D
 ou_sigma: 0.2 # D
 ou_noise_scale: 0.3
 final_ou_noise_scale: 0.
-gamma: 0.85
+gamma: 0.98
 grad_norm_clip: 0.5
 learner: "maddpg_learner"
 learn_interval: 1
-lr: 0.01
-critic_lr: 0.01
+lr: 0.0001
+critic_lr: 0.001
 td_lambda: 0.8
 critic_train_reps: 1
 q_nstep: 0  # 0 corresponds to default Q, 1 is r + gamma*Q, etc
@@ -40,16 +40,16 @@ optimizer_epsilon: 0.01 # D
 ou_stop_episode: 100 # training noise goes to zero after this episode
 rnn_hidden_dim: 64
 run_mode: ~
-runner: "episode"
-runner_scope: 'episodic'
+runner: "episode" # episode or parallel
+runner_scope: 'episodic' # episodic or transition
 target_update_interval: ~
 target_update_mode: 'soft'
-target_update_tau: 0.001
+target_update_tau: 0.005
 test_greedy: ~
 test_interval: 2000
 test_nepisode: 10
 testing_on: True
-t_max: 2000000
+t_max: 2000000 # totally number of time steps regardless episodes
 save_model: False
 save_model_interval: 10000
 verbose: False

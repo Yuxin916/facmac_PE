@@ -89,6 +89,7 @@ class PursuitMAEnv(PursuitEnvBase):
         reward_n = []
         done_n = []
         truncate_n = []
+        info_n = []
 
         # set action for each agent
         for i, agent in enumerate(self.pursuer_agents):
@@ -99,8 +100,6 @@ class PursuitMAEnv(PursuitEnvBase):
             obs_n.append(self.get_obs_agent(agent))
             # TODO: move env check into world step and refine _get_obs for redundant
             agent.collide = self.obstacle_collision_check(agent) or self.boundary_collision_check(agent)
-            if agent.collide:
-                a = 1
             agent.catch = self.catch_check(agent)
             if agent.catch:
                 agent.caught = True
@@ -115,7 +114,19 @@ class PursuitMAEnv(PursuitEnvBase):
                 # pass
             done_n.append(self._get_done(agent))
             truncate_n.append(agent.truncate)
-        info_n = self._get_info(agent)
+            info = self._get_info(agent)
+            info_n.append(info)
+
+        def merge_dicts_by_key(list_of_dicts):
+            merged_dict = {}
+            for key in list_of_dicts[0].keys():
+                for dictionary in list_of_dicts:
+                    if key not in merged_dict:
+                        merged_dict[key] = []
+                    merged_dict[key].append(dictionary[key])
+            return merged_dict
+
+        info_n = merge_dicts_by_key(info_n)
         both_catch = self._get_task_complete()
         if both_catch:
             reward_n = [[reward[0]+250.0] for reward in reward_n]
@@ -305,7 +316,7 @@ def fixed_action_env_test(env):
         env.reset()
         a = 0
         while a < 100:
-            action = np.array([[1.0, 0.0], [0.0, 0.0], [0.0, 1.0]])
+            action = np.array([[1.0, 0.0], [0.0, 1.0]])
             obs, reward, done, truncate, info = env.step(action)
             env.render(mode="human")
             print(reward)
