@@ -20,6 +20,8 @@ class PursuitMAEnv(PursuitEnvBase):
         super().__init__(cfg)
         cfg = cfg['env_args']
 
+        self.distance_reset_max = cfg['constraints']['distance_reset_max']
+
         self.n_pursuer = cfg['agent']['pursuer']['n']
         self.n_evader = cfg['agent']['evader']['n']
         # Init pursuer and evader models
@@ -308,6 +310,24 @@ class PursuitMAEnv(PursuitEnvBase):
                     "actions_dtype": np.float32,
                     "normalise_actions": False}
         return env_info
+
+    def _random_spawn(self, agent, gap=0.0):
+        valid = False
+        while not valid:
+            if agent.idx == 0:
+                init_x = self.boundary_xy[0] + random.random() * self.boundary_wh[0]
+                init_y = self.boundary_xy[1] - random.random() * self.boundary_wh[1]
+            else:
+                init_x = self.pursuer_agents[0].state[RobotStatusIdx.XCoordinateID.value] + random.random() * self.distance_reset_max * random.choice((-1, 1))
+                init_y = self.pursuer_agents[0].state[RobotStatusIdx.YCoordinateID.value] + random.random() * self.distance_reset_max * random.choice((-1, 1))
+                if init_x < self.boundary_wall[0] or init_x > self.boundary_wall[1] or init_y > self.boundary_wall[2] or init_y < self.boundary_wall[3]:
+                    pass
+            for ob in self.ob_list:
+                if np.linalg.norm(np.array(
+                        [init_x, init_y]) - ob) <= agent.robot_radius + self.ob_radius + gap:
+                    continue
+            valid = True
+        return init_x, init_y
 
 def fixed_action_env_test(env):
     # show plot

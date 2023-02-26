@@ -8,6 +8,7 @@ env_args:
     max_w: 0.5235987755982988 # pi/6.0 # max angular velocity
     max_w_acc: 5.235987755982988 # pi/3.0*5 # max angular acceleration
     boundary_wall: [-10, 10, 10, -10] # The rectangular boundary wall defined by left-top to right-bottom coordinates
+    distance_reset_max: 2 # The max distance among agents while reset
 
   agent:
     pursuer:

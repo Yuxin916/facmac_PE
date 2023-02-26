@@ -3,9 +3,9 @@ from math import sqrt
 # import multiagent.scenarios as scenarios
 import numpy as np
 
-from envs.multiagentenv import MultiAgentEnv
-from envs.particle.environment import MultiAgentEnv as OpenAIMultiAgentEnv
-from envs.particle import scenarios
+from src.envs.multiagentenv import MultiAgentEnv
+from src.envs.particle.environment import MultiAgentEnv as OpenAIMultiAgentEnv
+from src.envs.particle import scenarios
 from gym import spaces
 # from utils import dict2namedtuple as d2nt
 
