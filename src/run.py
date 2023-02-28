@@ -84,10 +84,10 @@ def evaluate_sequential(args, runner):
 
 
 def run_sequential(args, logger):
+    ## args --> /src/config/algs/facmac_pp/xxxx.yaml
 
     # Init runner so we can get env info
     runner = r_REGISTRY[args.runner](args=args, logger=logger)
-    # args --> /src/config/algs/facmac_pp/xxxx.yaml
 
     # Set up schemes and groups here
     if 'particle' not in args.env and "PE" not in args.env:
@@ -113,17 +113,18 @@ def run_sequential(args, logger):
         }
     else:
         env_info = runner.get_env_info()
-        args.n_agents = env_info["n_agents"]
-        args.n_actions = env_info["n_actions"]
         args.state_shape = env_info["state_shape"]
         args.obs_shape = env_info["obs_shape"]
+        args.n_actions = env_info["n_actions"]
+        args.n_agents = env_info["n_agents"]
         args.action_spaces = env_info["action_spaces"]
         args.actions_dtype = env_info["actions_dtype"]
-        args.normalise_actions = env_info.get("normalise_actions", False) # if true, action vectors need to sum to one
+        args.normalise_actions = env_info.get("normalise_actions", False) # if true, action vectors need to sum to one #TODO?
 
         ttype = th.FloatTensor if not args.use_cuda else th.cuda.FloatTensor
         mult_coef_tensor = ttype(args.n_agents, args.n_actions)
         action_min_tensor = ttype(args.n_agents, args.n_actions)
+
         if all([isinstance(act_space, spaces.Box) for act_space in args.action_spaces]):
             for _aid in range(args.n_agents):
                 for _actid in range(args.action_spaces[_aid].shape[0]):
@@ -178,14 +179,19 @@ def run_sequential(args, logger):
         elif all([isinstance(act_space, spaces.Tuple) for act_space in args.action_spaces]):
             actions_vshape = 1 if not args.actions_dtype == np.float32 else \
                                            max([i.spaces[0].shape[0] + i.spaces[1].shape[0] for i in args.action_spaces])
+
         # Default/Base scheme
         scheme = {
             "state": {"vshape": env_info["state_shape"]},
             "obs": {"vshape": env_info["obs_shape"], "group": "agents"},
             "actions": {"vshape": (actions_vshape,), "group": "agents", "dtype": action_dtype},
-            "avail_actions": {"vshape": (env_info["n_actions"],), "group": "agents", "dtype": th.int}, # todo: WHY INTEGER TYPE
+            # "avail_actions": {"vshape": (env_info["n_actions"],), "group": "agents", "dtype": th.int},
+            # TODO?: WHY INTEGER TYPE and What is this available action used for
             "reward": {"vshape": (1,)},
-            "terminated": {"vshape": (1,), "dtype": th.uint8},
+            "Terminated": {"vshape": (1,), "dtype": th.uint8},
+            "Both_Catch": {"vshape": (1,), "dtype": th.uint8},
+            "Collision": {"vshape": (1,), "dtype": th.uint8},
+            "Time_limit_reached": {"vshape": (1,), "dtype": th.uint8},
         }
         groups = {
             "agents": args.n_agents
@@ -196,10 +202,12 @@ def run_sequential(args, logger):
             preprocess = {
                 "actions": ("actions_onehot", [OneHot(out_dim=args.n_actions)])
             }
+        # TODO: Add multi-discrete here
         else:
             preprocess = {}
 
-    buffer = ReplayBuffer(scheme, groups, args.buffer_size, env_info["episode_limit"] + 1 if args.runner_scope == "episodic" else 2,
+    buffer = ReplayBuffer(scheme, groups, args.buffer_size,
+                          env_info["episode_limit"] + 1 if args.runner_scope == "episodic" else 2, #TODO: Why?
                           preprocess=preprocess,
                           device="cpu" if args.buffer_cpu_only else args.device)
 

@@ -55,7 +55,7 @@ class PursuitEnvBase(gym.Env):
         self.num_agents = cfg['agent']['pursuer']['n']
         # seed
         self.np_RNG = None
-        self.seed()
+        self.seed(1234)
 
         # time limit
         self.current_step = 0

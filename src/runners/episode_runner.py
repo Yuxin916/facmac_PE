@@ -17,7 +17,7 @@ class EpisodeRunner:
         self.args = args
         self.logger = logger
         self.batch_size = self.args.batch_size_run
-        assert self.batch_size == 1
+        assert self.batch_size == 1 # This is a episode runner. 1 environment to run in parallel
 
         if 'sc2' in self.args.env:
             self.env = env_REGISTRY[self.args.env](**self.args.env_args)
@@ -27,8 +27,8 @@ class EpisodeRunner:
             self.env = env_REGISTRY[self.args.env](env_args=self.args.env_args, args=args)
 
         self.episode_limit = self.env.episode_limit
-        self.t = 0
 
+        self.t = 0
         self.t_env = 0
 
         self.train_returns = []
@@ -41,7 +41,7 @@ class EpisodeRunner:
 
     def setup(self, scheme, groups, preprocess, mac):
         # EpisodeBatch is in episode_buffer.py. It is a class
-        self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + 1,
+        self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + 1, #TODO why +1?
                                  preprocess=preprocess, device=self.args.device)
         self.mac = mac
 
@@ -70,11 +70,12 @@ class EpisodeRunner:
 
             pre_transition_data = {
                 "state": [self.env.get_state()],
-                "avail_actions": [self.env.get_avail_actions()],
+                # "avail_actions": [self.env.get_avail_actions()],
                 "obs": [self.env.get_obs()]
             }
 
             self.batch.update(pre_transition_data, ts=self.t)
+
             if getattr(self.args, "action_selector", "epsilon_greedy") == "gumbel":
                 actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env,
                                                       test_mode=test_mode,
@@ -116,9 +117,10 @@ class EpisodeRunner:
                 post_transition_data = {
                     "actions": actions,
                     "reward": [(reward,)],
-                    "terminated": [(terminated,)],
-                    # "Collision": [(env_info.get("Collision"),)],
-                    # "both_catch": [(env_info.get("both_catch"),)]
+                    "Terminated": [(terminated,)],
+                    "Collision": [(env_info.get("Collision"),)],
+                    "Both_Catch": [(env_info.get("Both_Catch"),)],
+                    "Time_limit_reached": [(env_info.get("Time_limit_reached"),)]
                 }
 
 
@@ -128,7 +130,7 @@ class EpisodeRunner:
 
         last_data = {
             "state": [self.env.get_state()],
-            "avail_actions": [self.env.get_avail_actions()],
+            # "avail_actions": [self.env.get_avail_actions()],
             "obs": [self.env.get_obs()]
         }
         self.batch.update(last_data, ts=self.t)
@@ -147,7 +149,7 @@ class EpisodeRunner:
 
         cur_stats = self.test_stats if test_mode else self.train_stats
         cur_returns = self.test_returns if test_mode else self.train_returns
-        log_prefix = "test_" if test_mode else ""
+        log_prefix = "test_" if test_mode else "train_"
         cur_stats.update({k: cur_stats.get(k, 0) + env_info.get(k, 0) for k in set(cur_stats) | set(env_info)})
         cur_stats["n_episodes"] = 1 + cur_stats.get("n_episodes", 0)
         cur_stats["ep_length"] = self.t + cur_stats.get("ep_length", 0)

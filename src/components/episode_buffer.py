@@ -1,6 +1,7 @@
 import torch as th
 import numpy as np
 from types import SimpleNamespace as SN
+import blosc
 
 
 class EpisodeBatch:
@@ -477,7 +478,7 @@ class ReplayBuffer(EpisodeBatch):
         self.buffer_index = 0
         self.episodes_in_buffer = 0
         self.out_device = out_device if out_device is not None else device
-
+        pass
     def insert_episode_batch(self, ep_batch):
         if self.buffer_index + ep_batch.batch_size <= self.buffer_size:
             self.update(ep_batch.data.transition_data,

@@ -1,7 +1,10 @@
-from gym import spaces
+from math import pi
+
+import numpy as np
 import torch as th
 import torch.distributions as tdist
-import numpy as np
+from gym import spaces
+
 from .basic_controller import BasicMAC
 
 
@@ -13,7 +16,7 @@ class CQMixMAC(BasicMAC):
         # avail_actions = ep_batch["avail_actions"][bs, t_ep]
 
         if t_ep is not None and t_ep > 0:
-            past_actions = ep_batch["actions"][:, t_ep-1]
+            past_actions = ep_batch["actions"][:, t_ep - 1]
 
         if getattr(self.args, "agent", "cqmix") == "cqmix":
             raise Exception("No CQMIX agent selected (naf, icnn, qtopt)!")
@@ -25,7 +28,7 @@ class CQMixMAC(BasicMAC):
                                           t_ep,
                                           hidden_states=self.hidden_states[bs],
                                           test_mode=test_mode,
-                                          select_actions=True)["actions"] # just to make sure detach
+                                          select_actions=True)["actions"]  # just to make sure detach
             # (1,num_agents, action_dim)
             chosen_actions = chosen_actions.view(ep_batch[bs].batch_size, self.n_agents, self.args.n_actions).detach()
             pass
@@ -43,15 +46,18 @@ class CQMixMAC(BasicMAC):
 
             # Randomly sample N actions from a uniform distribution
             ftype = th.FloatTensor if not next(self.agent.parameters()).is_cuda else th.cuda.FloatTensor
-            low = ftype(ep_batch[bs].batch_size, self.n_agents, self.args.n_actions).zero_() + self.args.action_spaces[0].low[0]
-            high = ftype(ep_batch[bs].batch_size, self.n_agents, self.args.n_actions).zero_() + self.args.action_spaces[0].high[0]
+            low = ftype(ep_batch[bs].batch_size, self.n_agents, self.args.n_actions).zero_() + \
+                  self.args.action_spaces[0].low[0]
+            high = ftype(ep_batch[bs].batch_size, self.n_agents, self.args.n_actions).zero_() + \
+                   self.args.action_spaces[0].high[0]
             dist = tdist.Uniform(low.view(-1, self.args.n_actions), high.view(-1, self.args.n_actions))
             actions = dist.sample((N,)).detach()
 
             # Pick the best sampled action
-            out = self.agent(agent_inputs.unsqueeze(0).expand(N, *agent_inputs.shape).contiguous().view(-1, agent_inputs.shape[-1]),
-                             hidden_states if hidden_states is not None else self.hidden_states,
-                             actions=actions.view(-1, actions.shape[-1]))["Q"].view(N, -1, 1)
+            out = self.agent(
+                agent_inputs.unsqueeze(0).expand(N, *agent_inputs.shape).contiguous().view(-1, agent_inputs.shape[-1]),
+                hidden_states if hidden_states is not None else self.hidden_states,
+                actions=actions.view(-1, actions.shape[-1]))["Q"].view(N, -1, 1)
             topk, topk_idxs = th.topk(out, 1, dim=0)
             action_prime = th.mean(actions.gather(0, topk_idxs.repeat(1, 1, self.args.n_actions).long()), dim=0)
             chosen_actions = action_prime.clone().view(ep_batch[bs].batch_size, self.n_agents,
@@ -62,8 +68,8 @@ class CQMixMAC(BasicMAC):
 
         # Now do appropriate noising
         exploration_mode = getattr(self.args, "exploration_mode", "gaussian")
-            # If the args object has an attribute named exploration_mode, the getattr function returns its value.
-            # If the args object does not have this attribute, the function returns a default value of "gaussian".
+        # If the args object has an attribute named exploration_mode, the getattr function returns its value.
+        # If the args object does not have this attribute, the function returns a default value of "gaussian".
 
         # Ornstein-Uhlenbeck:
         if not test_mode:  # do exploration
@@ -73,7 +79,8 @@ class CQMixMAC(BasicMAC):
                 theta = getattr(self.args, "ou_theta", 0.15)
                 sigma = getattr(self.args, "ou_sigma", 0.2)
 
-                noise_scale = getattr(self.args, "ou_noise_scale", 0.3) if t_env < self.args.env_args["episode_limit"]*self.args.ou_stop_episode else 0.0
+                noise_scale = getattr(self.args, "ou_noise_scale", 0.3) if t_env < self.args.env_args[
+                    "episode_limit"] * self.args.ou_stop_episode else 0.0
                 dx = theta * (mu - x) + sigma * x.clone().normal_()
                 self.ou_noise_state = x + dx
                 ou_noise = self.ou_noise_state * noise_scale
@@ -96,20 +103,27 @@ class CQMixMAC(BasicMAC):
                             x = chosen_actions[:, idx].clone().zero_()
                             chosen_actions[:, idx] += act_noise * x.clone().normal_()
                 else:
-                    if getattr(self.args.env_args, "scenario_name", None) is None or self.args.env_args["scenario_name"] in ["Humanoid-v2", "HumanoidStandup-v2"]:
-                        chosen_actions = th.from_numpy(np.array([[self.args.action_spaces[0].sample() for i in range(self.n_agents)] for _ in range(ep_batch[bs].batch_size)])).float().to(device=ep_batch.device)
+                    if getattr(self.args.env_args, "scenario_name", None) is None or self.args.env_args[
+                        "scenario_name"] in ["Humanoid-v2", "HumanoidStandup-v2"]:
+                        chosen_actions = th.from_numpy(np.array(
+                            [[self.args.action_spaces[0].sample() for i in range(self.n_agents)] for _ in
+                             range(ep_batch[bs].batch_size)])).float().to(device=ep_batch.device)
                     else:
-                        chosen_actions = th.from_numpy(np.array([[self.args.action_spaces[i].sample() for i in range(self.n_agents)] for _ in range(ep_batch[bs].batch_size)])).float().to(device=ep_batch.device)
-
+                        chosen_actions = th.from_numpy(np.array(
+                            [[self.args.action_spaces[i].sample() for i in range(self.n_agents)] for _ in
+                             range(ep_batch[bs].batch_size)])).float().to(device=ep_batch.device)
+            elif exploration_mode == "original":
+                chosen_actions += 0.01 * th.randn(self.args.n_actions).cuda()
         '''
-        For continuous actions, now clamp actions to permissible action range (necessary after adding noise forexploration)
+        For continuous actions, now clamp actions to permissible action range (necessary after adding noise for exploration )
         '''
         if all([isinstance(act_space, spaces.Box) for act_space in self.args.action_spaces]):
             for _aid in range(self.n_agents):
                 for _actid in range(self.args.action_spaces[_aid].shape[0]):
                     chosen_actions[:, _aid, _actid].clamp_(np.asscalar(self.args.action_spaces[_aid].low[_actid]),
                                                            np.asscalar(self.args.action_spaces[_aid].high[_actid]))
-        elif all([isinstance(act_space, spaces.Tuple) for act_space in self.args.action_spaces]):   # NOTE: This was added to handle scenarios like simple_reference since action space is Tuple
+        elif all([isinstance(act_space, spaces.Tuple) for act_space in self.args.action_spaces]):
+            # NOTE: This was added to handle scenarios like simple_reference since action space is Tuple
             for _aid in range(self.n_agents):
                 for _actid in range(self.args.action_spaces[_aid].spaces[0].shape[0]):
                     chosen_actions[:, _aid, _actid].clamp_(self.args.action_spaces[_aid].spaces[0].low[_actid],
@@ -119,14 +133,17 @@ class CQMixMAC(BasicMAC):
                     chosen_actions[:, _aid, tmp_idx].clamp_(self.args.action_spaces[_aid].spaces[1].low[_actid],
                                                             self.args.action_spaces[_aid].spaces[1].high[_actid])
 
+        # print('After go into actor netowrk and add noise, the learnt action is ', chosen_actions)
         return chosen_actions
 
     def get_weight_decay_weights(self):
         return self.agent.get_weight_decay_weights()
 
     def forward(self, ep_batch, t, actions=None, hidden_states=None, select_actions=False, test_mode=False):
+        # 所有 Agent 共享同一网络, 因此 input_shape = obs_shape + n_actions + n_agents（one_hot_code）
         # obs + action + one hot agent index
         agent_inputs = self._build_inputs(ep_batch, t)
+        # num agent * obs dim
         # RNN agent (qmix agent, mlp agent, comix agent...)
         ret = self.agent(agent_inputs, self.hidden_states, actions=actions)
 
@@ -141,7 +158,8 @@ class CQMixMAC(BasicMAC):
             agent_outs = th.nn.functional.softmax(agent_outs, dim=-1)
             if not test_mode:
                 agent_outs = ((1 - self.action_selector.epsilon) * agent_outs
-                               + th.ones_like(agent_outs) * self.action_selector.epsilon/agent_outs.size(-1))
+                              + th.ones_like(agent_outs) * self.action_selector.epsilon / agent_outs.size(-1))
+
         return agent_outs.view(ep_batch.batch_size, self.n_agents, -1), actions
 
     def _build_inputs(self, batch, t, target_mac=False, last_target_action=None):
@@ -151,15 +169,28 @@ class CQMixMAC(BasicMAC):
         inputs = []
         inputs.append(batch["obs"][:, t])  # b1av
 
-        if self.args.obs_last_action:
+        # # 所有 Agent 共享同一网络, 因此 input_shape = obs_shape + n_actions==2 + n_agents（one_hot_code）
+        if self.args.obs_last_action:  # Include the agent's last action in the observation # TODO: Why
             if t == 0:
                 inputs.append(th.zeros_like(batch["actions"][:, t]))
             else:
                 inputs.append(batch["actions"][:, t - 1])
-        if self.args.obs_agent_id:
+
+        actions_origin = inputs[0][0, :, -4:]
+        # 4 for reference angle (1) and distance (1) and Execute linear velocity (1) + Execute angular velocity (1)
+        assert actions_origin[:, 0].any() >= -pi and actions_origin[:, 0].any() <= pi
+        assert actions_origin[:, 1].any() <= 15
+        # actions_origin = actions_origin[:, 2:4]
+        # actions_appended = batch["actions"][:, t - 1][0]
+        #
+        # print('At time step', t)
+        # print('from obs last 2 digit', actions_origin)  # Executed action
+        # print('from batch', actions_appended)  # learnt action
+
+        if self.args.obs_agent_id:  # Include the agent's one_hot id in the observation #TODO: why
             inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1))
 
-        inputs = th.cat([x.reshape(bs*self.n_agents, -1) for x in inputs], dim=1)
+        inputs = th.cat([x.reshape(bs * self.n_agents, -1) for x in inputs], dim=1)
 
         return inputs
 
@@ -194,7 +225,8 @@ class CQMixMAC(BasicMAC):
         critic_inputs = []
         if critic is not None:
             critic_inputs.append(ep_batch[bs]["obs"][:, t])
-            critic_inputs = th.cat([x.reshape(ep_batch[bs].batch_size * self.n_agents, -1) for x in critic_inputs], dim=1)
+            critic_inputs = th.cat([x.reshape(ep_batch[bs].batch_size * self.n_agents, -1) for x in critic_inputs],
+                                   dim=1)
 
         while its < maxits:
             dist = tdist.Normal(mu.view(-1, self.args.n_actions), std.view(-1, self.args.n_actions))
@@ -202,12 +234,16 @@ class CQMixMAC(BasicMAC):
             actions_prime = th.tanh(actions)
 
             if critic is None:
-                ret = self.agent(agent_inputs.unsqueeze(0).expand(N, *agent_inputs.shape).contiguous().view(-1, agent_inputs.shape[-1]),
+                ret = self.agent(agent_inputs.unsqueeze(0).expand(N, *agent_inputs.shape).contiguous().view(-1,
+                                                                                                            agent_inputs.shape[
+                                                                                                                -1]),
                                  hidden_states if hidden_states is not None else self.hidden_states,
                                  actions=actions_prime.view(-1, actions_prime.shape[-1]))
                 out = ret["Q"].view(N, -1, 1)
             else:
-                out, _ = critic(critic_inputs.unsqueeze(0).expand(N, *critic_inputs.shape).contiguous().view(-1, critic_inputs.shape[-1]),
+                out, _ = critic(critic_inputs.unsqueeze(0).expand(N, *critic_inputs.shape).contiguous().view(-1,
+                                                                                                             critic_inputs.shape[
+                                                                                                                 -1]),
                                 actions=actions_prime.view(-1, actions_prime.shape[-1]))
                 out = out.view(N, -1, 1)
 

@@ -45,7 +45,7 @@ class MADDPGLearner:
         '''
         rewards = batch["reward"][:, :-1]
         actions = batch["actions"][:, :-1]
-        terminated = batch["terminated"][:, :-1].float()
+        terminated = batch["Terminated"][:, :-1].float()
         mask = batch["filled"][:, :-1].float()
         mask[:, 1:] = mask[:, 1:] * (1 - terminated[:, :-1])
 
@@ -102,7 +102,8 @@ class MADDPGLearner:
         # Optimise critics
         self.critic_optimiser.zero_grad()
         loss.backward()
-        critic_grad_norm = th.nn.utils.clip_grad_norm_(self.critic_params, self.args.grad_norm_clip) # maximum allowed norm value to prevent the exploding gradient
+        critic_grad_norm = th.nn.utils.clip_grad_norm_(self.critic_params, self.args.grad_norm_clip)
+        # maximum allowed norm value to prevent the exploding gradient
         self.critic_optimiser.step()
 
         '''

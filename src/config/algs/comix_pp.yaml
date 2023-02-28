@@ -22,10 +22,10 @@ ou_theta: 0.15 # D
 ou_sigma: 0.2 # D
 ou_noise_scale: 0.3
 final_ou_noise_scale: 0.
-gamma: 0.85
+gamma: 0.98
 grad_norm_clip: 0.5
 learner: "cq_learner"
-lr: 0.01
+lr: 0.001
 mac: cqmix_mac
 mixer: "qmix"
 mixing_embed_dim: 64
@@ -46,7 +46,7 @@ runner: "episode"
 runner_scope: 'episodic'
 target_update_interval: 200 # update the target network every {} episodes
 target_update_mode: 'soft'
-target_update_tau: 0.001
+target_update_tau: 0.005
 test_greedy: True
 test_interval: 2000
 test_nepisode: 10

@@ -12,7 +12,7 @@ env_args:
 
   agent:
     pursuer:
-      n: 2 # number of pursuer
+      n: 3 # number of pursuer
       x: -5.0  # initial x-coordinate for pursuer
       y: -3.0  # initial y-coordinate for pursuer
       yaw: 0.0  # initial yaw angle for pursuer
@@ -21,7 +21,7 @@ env_args:
     evader:
       n: 1 # number of evader
       x: 0.0  # initial x-coordinate for evader
-      y: 1.0  # initial y-coordinate for evader
+      y: 0.0  # initial y-coordinate for evader
       yaw: 0.0  # initial yaw angle for evader
       radius: 0.2 # evader radius
       fixed: true
@@ -48,7 +48,7 @@ env_args:
     laser_sample_resolution_scale: 1.5  # sampling density decreases with distance from percept region center
 
   train:
-    episode_limit: 200
+    episode_limit: 250
 
   test_greedy: True
   test_nepisode: 32

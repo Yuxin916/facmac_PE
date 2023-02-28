@@ -55,7 +55,7 @@ class PursuitMAEnv(PursuitEnvBase):
         for agents in self.pursuer_agents:
             self.action_space.append(spaces.Box(low=np.array([-1.0, -1.0], dtype=np.float32),
                                                 high=np.array([1.0, 1.0], dtype=np.float32)))
-            self.obs_num = agents.laser_map_size + 4  # 4 for reference angle (2) and distance (2)
+            self.obs_num = agents.laser_map_size + 4  # 4 for reference angle (1) and distance (1) and Execute linear velocity (1) + Execute angular velocity (1)
             share_obs_dim += self.obs_num
             self.observation_space.append(spaces.Box(-np.inf, np.inf, shape=(self.obs_num,), dtype=float))
         self.share_observation_space = [spaces.Box(
@@ -66,6 +66,7 @@ class PursuitMAEnv(PursuitEnvBase):
         self.episode_limit = cfg['train']['episode_limit']
 
         self.is_done = False
+
 
     def seed(self, seed=None):
         self.np_RNG, seed_ = seeding.np_random(seed)
@@ -132,9 +133,9 @@ class PursuitMAEnv(PursuitEnvBase):
         both_catch = self._get_task_complete()
         if both_catch:
             reward_n = [[reward[0]+250.0] for reward in reward_n]
-            info_n['both_catch'] = True
+            info_n['Both_Catch'] = True
         else:
-            info_n['both_catch'] = False
+            info_n['Both_Catch'] = False
 
         done_n = [done or both_catch for done in done_n]
 
@@ -149,7 +150,6 @@ class PursuitMAEnv(PursuitEnvBase):
         return np.array(obs_n), np.array(reward_n), done_n, truncate_n, info_n
 
     def reset(self, **kwargs):
-
         if self.is_done:
             self.is_done = False
 
@@ -336,7 +336,7 @@ def fixed_action_env_test(env):
         env.reset()
         a = 0
         while a < 100:
-            action = np.array([[1.0, 0.0], [0.0, 1.0]])
+            action = np.array([[1.0, 0.0], [0.0, 1.0], [-1,-1]])
             obs, reward, done, truncate, info = env.step(action)
             env.render(mode="human")
             print(reward)

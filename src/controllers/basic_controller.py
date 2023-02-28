@@ -8,8 +8,9 @@ class BasicMAC(): #i think should be class BasicMAC(th.nn.modules):
     def __init__(self, scheme, groups, args):
         self.n_agents = args.n_agents
         self.args = args
+        # input obs shape + num agent + action dim
         input_shape = self._get_input_shape(scheme)
-        # RNN.agent
+        # RNN/MLP/COMIX.agent
         self._build_agents(input_shape)
 
         self.agent_output_type = args.agent_output_type
