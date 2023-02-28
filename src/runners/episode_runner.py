@@ -11,9 +11,6 @@ import random
 class EpisodeRunner:
 
     def __init__(self, args, logger):
-        '''
-        args --> /src/config/algs/facmac_pp/xxxx.yaml
-        '''
         self.args = args
         self.logger = logger
         self.batch_size = self.args.batch_size_run

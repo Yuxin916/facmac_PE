@@ -298,6 +298,10 @@ class PursuitMAEnv(PursuitEnvBase):
             obs_n.append(obs)
         return obs_n
 
+    def get_stats(self):
+        states = np.concatenate(self.get_obs())
+        return states
+
     def get_env_info(self):
         action_spaces = self.action_space
 

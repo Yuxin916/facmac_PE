@@ -186,7 +186,6 @@ def run_sequential(args, logger):
             "obs": {"vshape": env_info["obs_shape"], "group": "agents"},
             "actions": {"vshape": (actions_vshape,), "group": "agents", "dtype": action_dtype},
             # "avail_actions": {"vshape": (env_info["n_actions"],), "group": "agents", "dtype": th.int},
-            # TODO?: WHY INTEGER TYPE and What is this available action used for
             "reward": {"vshape": (1,)},
             "Terminated": {"vshape": (1,), "dtype": th.uint8},
             "Both_Catch": {"vshape": (1,), "dtype": th.uint8},
