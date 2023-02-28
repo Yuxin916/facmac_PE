@@ -22,7 +22,7 @@ class EpisodeRunner:
         if 'sc2' in self.args.env:
             self.env = env_REGISTRY[self.args.env](**self.args.env_args)
         if 'PE' in self.args.env:
-            self.env = env_REGISTRY[self.args.env]
+            self.env = env_REGISTRY[self.args.env](env_args=self.args.env_args, args=args)
         else:
             self.env = env_REGISTRY[self.args.env](env_args=self.args.env_args, args=args)
 
