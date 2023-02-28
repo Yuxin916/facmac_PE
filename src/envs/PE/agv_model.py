@@ -108,8 +108,8 @@ class AGVModel:
         self.state[RobotStatusIdx.LinearVelocityDes.value] = input_u[0]  # set
         self.state[RobotStatusIdx.AngularVelocityDes.value] = input_u[1]  # set
 
-        if self.laser_on:
-            self.laser.laser_points_update(np.array(obstacles[0]), obstacles[1], self.get_transform(), line_ob_list)
+        # if self.laser_on:
+        #     self.laser.laser_points_update(np.array(obstacles[0]), obstacles[1], self.get_transform(), line_ob_list)
 
     def rot_to_angle(self, theta):
         norm_theta = normalize_angle(theta - self.state[2])

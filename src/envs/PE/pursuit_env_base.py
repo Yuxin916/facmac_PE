@@ -4,6 +4,7 @@ from src.envs.PE.agv_model import RobotStatusIdx
 from src.envs.PE.base.utils import Line
 from src.envs.PE.utils import *
 
+
 class PursuitEnvBase(gym.Env):
     def __init__(self, cfg):
         cfg = cfg['env_args']
@@ -20,10 +21,11 @@ class PursuitEnvBase(gym.Env):
         self.boundary_xy = [self.boundary_wall[0], self.boundary_wall[1]]
         self.boundary_wh = [self.boundary_wall[2] - self.boundary_wall[0],
                             self.boundary_wall[1] - self.boundary_wall[3]]
-        self.line_ob_list = [Line((self.boundary_wall[0], self.boundary_wall[1]), (self.boundary_wall[2], self.boundary_wall[1])),
-                             Line((self.boundary_wall[2], self.boundary_wall[1]), (self.boundary_wall[2], self.boundary_wall[3])),
-                             Line((self.boundary_wall[2], self.boundary_wall[3]), (self.boundary_wall[0], self.boundary_wall[3])),
-                             Line((self.boundary_wall[0], self.boundary_wall[3]), (self.boundary_wall[0], self.boundary_wall[1]))]
+        self.line_ob_list = [
+            Line((self.boundary_wall[0], self.boundary_wall[1]), (self.boundary_wall[2], self.boundary_wall[1])),
+            Line((self.boundary_wall[2], self.boundary_wall[1]), (self.boundary_wall[2], self.boundary_wall[3])),
+            Line((self.boundary_wall[2], self.boundary_wall[3]), (self.boundary_wall[0], self.boundary_wall[3])),
+            Line((self.boundary_wall[0], self.boundary_wall[3]), (self.boundary_wall[0], self.boundary_wall[1]))]
         # initial condition for pursuer
         self.init_x = cfg['agent']['pursuer']['x']
         self.init_y = cfg['agent']['pursuer']['y']
@@ -91,6 +93,9 @@ class PursuitEnvBase(gym.Env):
         # Input action to pursuer and evader model
         agent.motion(action, self.dt, (self.ob_list, self.ob_radius), self.line_ob_list)
 
+        # if agent.laser_on:
+        #     agent.laser.laser_points_update(np.array(self.ob_list), self.ob_radius, agent.get_transform(), self.line_ob_list)
+
     def get_obs_agent(self, agent):
         """
         Returns the observation of target agent.
@@ -118,7 +123,6 @@ class PursuitEnvBase(gym.Env):
                                               pursuer_state[RobotStatusIdx.AngularVelocityExe.value]])
 
         return observation
-
 
     def get_state(self):
         state = np.concatenate(self.get_obs())
@@ -204,7 +208,6 @@ class PursuitEnvBase(gym.Env):
                     continue
             valid = True
         return init_x, init_y
-
 
 
 if __name__ == "__main__":
