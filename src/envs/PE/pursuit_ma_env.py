@@ -73,7 +73,7 @@ class PursuitMAEnv(PursuitEnvBase):
         return [seed_]
 
     def _get_info(self, agent):
-        info ={}
+        info = {}
         info["Collision"], info["Caught"], info["Time_limit_reached"] = False, False, False
 
         if agent.collide:
@@ -113,7 +113,7 @@ class PursuitMAEnv(PursuitEnvBase):
             # info_n.append(info)
             # if info['Done']:
             #     print(str(agent.idx), info)
-                # pass
+            # pass
             done_n.append(self._get_done(agent))
             truncate_n.append(agent.truncate)
             info = self._get_info(agent)
@@ -131,7 +131,7 @@ class PursuitMAEnv(PursuitEnvBase):
         info_n = merge_dicts_by_key(info_n)
         both_catch = self._get_task_complete()
         if both_catch:
-            reward_n = [[reward[0]+250.0] for reward in reward_n]
+            reward_n = [[reward[0] + 250.0] for reward in reward_n]
             info_n['both_catch'] = True
         else:
             info_n['both_catch'] = False
@@ -298,6 +298,10 @@ class PursuitMAEnv(PursuitEnvBase):
             obs_n.append(obs)
         return obs_n
 
+    def get_stats(self):
+        states = np.concatenate(self.get_obs())
+        return states
+
     def get_env_info(self):
         action_spaces = self.action_space
 
@@ -318,9 +322,14 @@ class PursuitMAEnv(PursuitEnvBase):
                 init_x = self.boundary_xy[0] + random.random() * self.boundary_wh[0]
                 init_y = self.boundary_xy[1] - random.random() * self.boundary_wh[1]
             else:
-                init_x = self.pursuer_agents[0].state[RobotStatusIdx.XCoordinateID.value] + random.random() * self.distance_reset_max * random.choice((-1, 1))
-                init_y = self.pursuer_agents[0].state[RobotStatusIdx.YCoordinateID.value] + random.random() * self.distance_reset_max * random.choice((-1, 1))
-                if init_x < self.boundary_wall[0] or init_x > self.boundary_wall[1] or init_y > self.boundary_wall[2] or init_y < self.boundary_wall[3]:
+                init_x = self.pursuer_agents[0].state[
+                             RobotStatusIdx.XCoordinateID.value] + random.random() * self.distance_reset_max * random.choice(
+                    (-1, 1))
+                init_y = self.pursuer_agents[0].state[
+                             RobotStatusIdx.YCoordinateID.value] + random.random() * self.distance_reset_max * random.choice(
+                    (-1, 1))
+                if init_x < self.boundary_wall[0] or init_x > self.boundary_wall[1] or init_y > self.boundary_wall[
+                    2] or init_y < self.boundary_wall[3]:
                     pass
             for ob in self.ob_list:
                 if np.linalg.norm(np.array(
@@ -328,6 +337,7 @@ class PursuitMAEnv(PursuitEnvBase):
                     continue
             valid = True
         return init_x, init_y
+
 
 def fixed_action_env_test(env):
     # show plot
@@ -367,7 +377,8 @@ def main(cfg: DictConfig):
 
 
 def main_yaml():
-    file_name = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..', 'config')), "envs", "{}.yaml"
+    file_name = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'config')), "envs",
+                             "{}.yaml"
                              .format('PE'))
     with open(file_name) as f:
         cfg = yaml.load(f, Loader=yaml.FullLoader)
