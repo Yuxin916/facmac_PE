@@ -102,7 +102,7 @@ class MADDPGLearner:
         # Optimise critics
         self.critic_optimiser.zero_grad()
         loss.backward()
-        critic_grad_norm = th.nn.utils.clip_grad_norm_(self.critic_params, self.args.grad_norm_clip)
+        # critic_grad_norm = th.nn.utils.clip_grad_norm_(self.critic_params, self.args.grad_norm_clip)
         # maximum allowed norm value to prevent the exploding gradient
         self.critic_optimiser.step()
 
@@ -134,7 +134,7 @@ class MADDPGLearner:
         # Optimise agents
         self.agent_optimiser.zero_grad()
         pg_loss.backward()
-        agent_grad_norm = th.nn.utils.clip_grad_norm_(self.agent_params, self.args.grad_norm_clip)
+        # agent_grad_norm = th.nn.utils.clip_grad_norm_(self.agent_params, self.args.grad_norm_clip)
         self.agent_optimiser.step()
 
         if getattr(self.args, "target_update_mode", "hard") == "hard":
@@ -147,13 +147,13 @@ class MADDPGLearner:
 
         if t_env - self.log_stats_t >= self.args.learner_log_interval:
             self.logger.log_stat("critic_loss", loss.item(), t_env)
-            self.logger.log_stat("critic_grad_norm", critic_grad_norm, t_env)
+            # self.logger.log_stat("critic_grad_norm", critic_grad_norm, t_env)
             mask_elems = mask.sum().item()
             self.logger.log_stat("td_error_abs", masked_td_error.abs().sum().item() / mask_elems, t_env)
             self.logger.log_stat("q_taken_mean", (q_taken * mask).sum().item() / mask_elems, t_env)
             self.logger.log_stat("target_mean", targets.sum().item() / mask_elems, t_env)
             self.logger.log_stat("pg_loss", pg_loss.item(), t_env)
-            self.logger.log_stat("agent_grad_norm", agent_grad_norm, t_env)
+            # self.logger.log_stat("agent_grad_norm", agent_grad_norm, t_env)
             self.log_stats_t = t_env
 
     def _update_targets_soft(self, tau):

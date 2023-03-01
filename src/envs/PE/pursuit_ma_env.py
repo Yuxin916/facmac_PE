@@ -66,7 +66,7 @@ class PursuitMAEnv(PursuitEnvBase):
         self.writer = None
         self.episode_limit = cfg['train']['episode_limit']
 
-        self.is_done = False
+        self.is_done = True
 
     def seed(self, seed=None):
         self.np_RNG, seed_ = seeding.np_random(seed)
@@ -211,7 +211,7 @@ class PursuitMAEnv(PursuitEnvBase):
         # plt.text(0, 4, "Exe: " + str(pursuer_state[-4:-2]), fontsize=10)
         # plt.text(0, 4.5, "Des: " + str(pursuer_state[-2:]), fontsize=10)
 
-        # draw evader and pursuer
+        # draw pursuer
         for i, agent in enumerate(self.pursuer_agents):
             pursuer_state = agent.state
             plt.text(0, 4 - 0.6 * i, "The no.{} Action: ".format(i + 1) +
@@ -222,11 +222,6 @@ class PursuitMAEnv(PursuitEnvBase):
                 agent.robot_radius, color="r")
             self.ax.add_patch(circle_pursuer)
 
-        evader_state = self.evader_model.state
-        circle_evader = plt.Circle(
-            (evader_state[RobotStatusIdx.XCoordinateID.value], evader_state[RobotStatusIdx.YCoordinateID.value]),
-            self.evader_radius, color="blue")
-        self.ax.add_patch(circle_evader)
 
         # draw obstacles
         if self.ob_list is not None:
@@ -237,6 +232,13 @@ class PursuitMAEnv(PursuitEnvBase):
                                           -self.boundary_wh[1],
                                           fill=False, color="red", linewidth=2)
                 self.ax.add_patch(rect_wall)
+
+        # draw evader
+        evader_state = self.evader_model.state
+        circle_evader = plt.Circle(
+            (evader_state[RobotStatusIdx.XCoordinateID.value], evader_state[RobotStatusIdx.YCoordinateID.value]),
+            self.evader_radius, color="blue")
+        self.ax.add_patch(circle_evader)
 
         # draw robot movement
         for agent in self.pursuer_agents:
@@ -315,6 +317,11 @@ class PursuitMAEnv(PursuitEnvBase):
         states = np.concatenate(self.get_obs())
         return states
 
+    def get_state_size(self):
+        """ Returns the shape of the state"""
+        state_size = len(self.get_stats())
+        return state_size
+
     def get_env_info(self):
         action_spaces = self.action_space
 
@@ -356,7 +363,6 @@ def fixed_action_env_test(env):
     # show plot
     fig, ax = plt.subplots(3)
     for _ in range(100):
-        # print("The initial observation is {}".format(obs))
         env.reset()
         a = 0
         while a < 100:

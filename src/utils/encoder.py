@@ -1,3 +1,5 @@
+import time
+
 import torch
 from torch import nn
 from torch.nn import Conv2d, MaxPool2d
@@ -16,17 +18,34 @@ class obs_encoder(nn.Module):
         self.Cov2 = Conv2d(in_channels=hidden_size, out_channels=4, kernel_size=(2,2), stride=2, padding=1)
         # self.MaxPool = MaxPool1d(3, stride=2)
         self.MaxPool = MaxPool2d(3, stride=2)
+        self.bn1 = nn.BatchNorm2d(hidden_size)
+        self.bn2 = nn.BatchNorm2d(4)
+
         pass
 
     def forward(self, x):
 
         x = x.view(x.shape[0]*x.shape[1], math.isqrt(x.shape[2]), math.isqrt(x.shape[2])).unsqueeze(1).cuda()
         #n_workers x 1 x 21 x 21
-        x = F.relu(self.Cov1(x))
-        x = F.relu(self.Cov2(x))
 
+        # import matplotlib.pyplot as plt
+        # for i in range(3):
+        #     plt.figure(i+1)
+        #     plt.imshow(x[i][0].cpu().detach().numpy())
+        # plt.show()
 
+        x = F.relu(self.bn1(self.Cov1(x)))
+        x = F.relu(self.bn2(self.Cov2(x)))
         x = self.MaxPool(x)
-        x = x.view(x.shape[0], -1)
 
+        x = x.view(x.shape[0], x.shape[1], -1)
+
+        # import matplotlib.pyplot as plt
+        # plt.figure(1)
+        # plt.imshow(x[0].cpu().detach().numpy())
+        # plt.figure(2)
+        # plt.imshow(x[1].cpu().detach().numpy())
+        # plt.show()
+
+        x = x.view(x.shape[0], -1)
         return x

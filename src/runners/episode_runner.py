@@ -6,6 +6,8 @@ import numpy as np
 import copy
 import time
 import random
+import matplotlib.pyplot as plt
+
 
 
 class EpisodeRunner:
@@ -52,21 +54,21 @@ class EpisodeRunner:
         self.env.close()
 
     def reset(self):
-        self.batch = self.new_batch()
         self.env.reset()
+        self.batch = self.new_batch()
         self.t = 0
 
     def run(self, test_mode=False, **kwargs):
         self.reset()
-
         terminated = False
         episode_return = 0
         self.mac.init_hidden(batch_size=self.batch_size)
 
+        fig, ax = plt.subplots(3) # Comment here
         while not terminated:
 
             pre_transition_data = {
-                "state": [self.env.get_state()],
+                "state": [self.env.get_stats()],
                 # "avail_actions": [self.env.get_avail_actions()],
                 "obs": [self.env.get_obs()]
             }
@@ -100,6 +102,15 @@ class EpisodeRunner:
                 cpu_actions = copy.deepcopy(actions).to("cpu").numpy()
                 _, reward, done_n, truncate_n, env_info = self.env.step(cpu_actions[0])
 
+                for i, o in enumerate(_): # Comment this paragraph
+                    ax[i].cla()
+                    img = o[:21 * 21].reshape((21, 21))
+                    ax[i].imshow(img)
+                    plt.sca(ax[i])
+                    plt.pause(0.01)
+                self.env.render(mode="human")
+
+
                 # for key in env_info.keys():
                 #     env_info[key] = any(env_info[key])
                 env_info['Collision'] = any(env_info['Collision'])
@@ -125,8 +136,9 @@ class EpisodeRunner:
 
             self.t += 1
 
+        print(episode_return)
         last_data = {
-            "state": [self.env.get_state()],
+            "state": [self.env.get_stats()],
             # "avail_actions": [self.env.get_avail_actions()],
             "obs": [self.env.get_obs()]
         }

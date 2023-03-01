@@ -16,12 +16,10 @@ class Laser:
 
         assert self.laser_angle_min < self.laser_angle_max, "The max angle should be larger than the min angle!"
 
-        self.angle_list = np.arange(self.laser_angle_min, self.laser_angle_max,
-                                    self.laser_angle_resolution)  # in radians
+        self.angle_list = np.arange(self.laser_angle_min, self.laser_angle_max, self.laser_angle_resolution)  # in radians
 
         # Assume square shape first
-        self.map_size = np.arange(-laser_distance_max, laser_distance_max, map_resolution).shape[
-            0]  # number of points in one direction
+        self.map_size = np.arange(-laser_distance_max, laser_distance_max, map_resolution).shape[0]  # number of points in one direction
         self.raster_map = np.zeros((self.map_size + 1, self.map_size + 1))
         #
         self.points = np.zeros((self.angle_list.shape[0], 2))
@@ -79,6 +77,11 @@ class Laser:
         rbt2ob_distance = np.linalg.norm(ob_list, axis=1)
 
         return ob_list[rbt2ob_distance <= (self.laser_distance_max + ob_radius), :]
+
+    def _teammates_list_filer(self):
+        pass #TODO
+
+
 
     # Assume the coordinates are 0,0
     def _ray_circle_cross(self, ray_vector, circle_center, circle_radius):

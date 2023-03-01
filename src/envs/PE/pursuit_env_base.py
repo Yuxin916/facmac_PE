@@ -124,19 +124,12 @@ class PursuitEnvBase(gym.Env):
 
         return observation
 
-    def get_state(self):
-        state = np.concatenate(self.get_obs())
-        return state
 
     def get_total_actions(self):
         """ Returns the total number of actions an agent could ever take """
         # TODO: This is only suitable for a discrete 1 dimensional action space for each agent
         raise NotImplementedError
 
-    def get_state_size(self):
-        """ Returns the shape of the state"""
-        state_size = len(self.get_state())
-        return state_size
 
     def _get_info(self, agent):
         if agent.collide:
