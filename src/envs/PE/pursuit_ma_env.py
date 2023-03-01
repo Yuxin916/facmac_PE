@@ -61,7 +61,8 @@ class PursuitMAEnv(PursuitEnvBase):
         self.share_observation_space = [spaces.Box(
             low=-np.inf, high=+np.inf, shape=(share_obs_dim,), dtype=np.float32)] * self.num_agents
 
-        self.fig = None
+        self.fig = plt.figure()
+        self.ax = self.fig.gca()
         self.writer = None
         self.episode_limit = cfg['train']['episode_limit']
 
@@ -203,6 +204,7 @@ class PursuitMAEnv(PursuitEnvBase):
         # return np.array(obs_n), {}
 
     def render(self, mode='human'):
+        plt.sca(self.ax)
         plt.cla()
 
         # executed linear&angular velocity + set linear&angular velocity
@@ -218,31 +220,30 @@ class PursuitMAEnv(PursuitEnvBase):
             circle_pursuer = plt.Circle(
                 (pursuer_state[RobotStatusIdx.XCoordinateID.value], pursuer_state[RobotStatusIdx.YCoordinateID.value]),
                 agent.robot_radius, color="r")
-            plt.gca().add_patch(circle_pursuer)
+            self.ax.add_patch(circle_pursuer)
 
         evader_state = self.evader_model.state
         circle_evader = plt.Circle(
             (evader_state[RobotStatusIdx.XCoordinateID.value], evader_state[RobotStatusIdx.YCoordinateID.value]),
             self.evader_radius, color="blue")
-        plt.gca().add_patch(circle_evader)
+        self.ax.add_patch(circle_evader)
 
-        ax = plt.gca()
         # draw obstacles
         if self.ob_list is not None:
             for o in self.ob_list:
-                plt.gca().add_patch(plt.Circle(o, self.ob_radius, color="black"))
+                self.ax.add_patch(plt.Circle(o, self.ob_radius, color="black"))
                 # draw boundary wall
                 rect_wall = plt.Rectangle((self.boundary_xy[0], self.boundary_xy[1]), self.boundary_wh[0],
                                           -self.boundary_wh[1],
                                           fill=False, color="red", linewidth=2)
-                plt.gca().add_patch(rect_wall)
+                self.ax.add_patch(rect_wall)
 
         # draw robot movement
         for agent in self.pursuer_agents:
             pursuer_state = agent.state
             plot_arrow(pursuer_state[0], pursuer_state[1], pursuer_state[2])
             # Render laser
-            agent.laser.render(ax)
+            agent.laser.render(self.ax)
 
         plt.xlim([self.boundary_wall[0] - 1, self.boundary_wall[2] + 1])
         plt.ylim([self.boundary_wall[3] - 1, self.boundary_wall[1] + 1])
@@ -282,6 +283,7 @@ class PursuitMAEnv(PursuitEnvBase):
 
     def set_writer(self, writer):
         self.fig = plt.figure(figsize=(7, 7))
+        self.ax = self.fig.gca()
         self.writer = writer
 
     def get_total_actions(self):
@@ -352,6 +354,7 @@ class PursuitMAEnv(PursuitEnvBase):
 
 def fixed_action_env_test(env):
     # show plot
+    fig, ax = plt.subplots(3)
     for _ in range(100):
         # print("The initial observation is {}".format(obs))
         env.reset()
@@ -359,6 +362,12 @@ def fixed_action_env_test(env):
         while a < 100:
             action = np.array([[1.0, 0.0], [0.0, 1.0], [-1, -1]])
             obs, reward, done, truncate, info = env.step(action)
+            for i, o in enumerate(obs):
+                ax[i].cla()
+                img = o[:21*21].reshape((21, 21))
+                ax[i].imshow(img)
+                plt.sca(ax[i])
+                plt.pause(0.01)
             env.render(mode="human")
             print(reward)
             done_flag = False
