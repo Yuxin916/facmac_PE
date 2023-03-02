@@ -25,7 +25,7 @@ class obs_encoder(nn.Module):
 
     def forward(self, x):
 
-        x = x.view(x.shape[0]*x.shape[1], math.isqrt(x.shape[2]), math.isqrt(x.shape[2])).unsqueeze(1).cuda()
+        x = x.view(x.shape[0]*x.shape[1], int(math.sqrt(x.shape[2])), int(math.sqrt(x.shape[2]))).unsqueeze(1).cuda()
         #n_workers x 1 x 21 x 21
 
         # import matplotlib.pyplot as plt

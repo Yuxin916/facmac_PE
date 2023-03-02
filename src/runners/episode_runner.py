@@ -9,21 +9,20 @@ import random
 import matplotlib.pyplot as plt
 
 
-
 class EpisodeRunner:
 
     def __init__(self, args, logger):
         self.args = args
         self.logger = logger
         self.batch_size = self.args.batch_size_run
-        assert self.batch_size == 1 # This is a episode runner. 1 environment to run in parallel
+        assert self.batch_size == 1, "This is a episode runner. 1 environment to run in parallel"
 
         if 'sc2' in self.args.env:
             self.env = env_REGISTRY[self.args.env](**self.args.env_args)
         if 'PE' in self.args.env:
             self.env = env_REGISTRY[self.args.env](env_args=self.args.env_args, args=args)
         else:
-            self.env = env_REGISTRY[self.args.env](env_args=self.args.env_args, args=args)
+            raise NotImplementedError
 
         self.episode_limit = self.env.episode_limit
 
@@ -40,7 +39,7 @@ class EpisodeRunner:
 
     def setup(self, scheme, groups, preprocess, mac):
         # EpisodeBatch is in episode_buffer.py. It is a class
-        self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + 1, #TODO why +1?
+        self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + 1,  # TODO why +1?
                                  preprocess=preprocess, device=self.args.device)
         self.mac = mac
 
@@ -64,7 +63,7 @@ class EpisodeRunner:
         episode_return = 0
         self.mac.init_hidden(batch_size=self.batch_size)
 
-        fig, ax = plt.subplots(3) # Comment here
+        fig, ax = plt.subplots(3)  # Comment here
         while not terminated:
 
             pre_transition_data = {
@@ -77,8 +76,8 @@ class EpisodeRunner:
 
             if getattr(self.args, "action_selector", "epsilon_greedy") == "gumbel":
                 actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env,
-                                                      test_mode=test_mode,
-                                                      explore=(not test_mode))
+                                                  test_mode=test_mode,
+                                                  explore=(not test_mode))
             else:
                 actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
                 # (1,num_agents, action_dim)
@@ -102,14 +101,13 @@ class EpisodeRunner:
                 cpu_actions = copy.deepcopy(actions).to("cpu").numpy()
                 _, reward, done_n, truncate_n, env_info = self.env.step(cpu_actions[0])
 
-                for i, o in enumerate(_): # Comment this paragraph
+                for i, o in enumerate(_):  # Comment this paragraph
                     ax[i].cla()
                     img = o[:21 * 21].reshape((21, 21))
                     ax[i].imshow(img)
                     plt.sca(ax[i])
                     plt.pause(0.01)
                 self.env.render(mode="human")
-
 
                 # for key in env_info.keys():
                 #     env_info[key] = any(env_info[key])
@@ -130,7 +128,6 @@ class EpisodeRunner:
                     "Both_Catch": [(env_info.get("Both_Catch"),)],
                     "Time_limit_reached": [(env_info.get("Time_limit_reached"),)]
                 }
-
 
             self.batch.update(post_transition_data, ts=self.t)
 
@@ -185,5 +182,5 @@ class EpisodeRunner:
 
         for k, v in stats.items():
             if k != "n_episodes":
-                self.logger.log_stat(prefix + k + "_mean" , v/stats["n_episodes"], self.t_env)
+                self.logger.log_stat(prefix + k + "_mean", v / stats["n_episodes"], self.t_env)
         stats.clear()
