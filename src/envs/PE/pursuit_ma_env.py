@@ -104,6 +104,10 @@ class PursuitMAEnv(PursuitEnvBase):
                 if not i == j:
                     agent_ob_list.append([agent_.state[RobotStatusIdx.XCoordinateID.value],
                                           agent_.state[RobotStatusIdx.YCoordinateID.value]])
+
+                # agent_ob_list.append([self.evader_model.state[RobotStatusIdx.XCoordinateID.value],
+                #                 self.evader_model.state[RobotStatusIdx.YCoordinateID.value]])
+                #
             if agent.laser_on:
                 agent.laser.laser_points_update(np.array(self.ob_list + agent_ob_list),
                                                 self.ob_radius,

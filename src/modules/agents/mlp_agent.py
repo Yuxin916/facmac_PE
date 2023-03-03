@@ -54,5 +54,5 @@ class MLPAgent(nn.Module):
         if self.agent_return_logits:
             actions = self.fc3(inputs)
         else:
-            actions = F.tanh(self.fc3(inputs))
+            actions = torch.tanh(self.fc3(inputs))
         return {"actions": actions, "hidden_state": hidden_state}

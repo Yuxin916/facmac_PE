@@ -63,7 +63,7 @@ class EpisodeRunner:
         episode_return = 0
         self.mac.init_hidden(batch_size=self.batch_size)
 
-        fig, ax = plt.subplots(3)  # Comment here
+        # fig, ax = plt.subplots(3) # Comment here
         while not terminated:
 
             pre_transition_data = {
@@ -101,13 +101,13 @@ class EpisodeRunner:
                 cpu_actions = copy.deepcopy(actions).to("cpu").numpy()
                 _, reward, done_n, truncate_n, env_info = self.env.step(cpu_actions[0])
 
-                for i, o in enumerate(_):  # Comment this paragraph
-                    ax[i].cla()
-                    img = o[:21 * 21].reshape((21, 21))
-                    ax[i].imshow(img)
-                    plt.sca(ax[i])
-                    plt.pause(0.01)
-                self.env.render(mode="human")
+                # for i, o in enumerate(_): # Comment this paragraph
+                #     ax[i].cla()
+                #     img = o[:21 * 21].reshape((21, 21))
+                #     ax[i].imshow(img)
+                #     plt.sca(ax[i])
+                #     plt.pause(0.01)
+                # self.env.render(mode="human")
 
                 # for key in env_info.keys():
                 #     env_info[key] = any(env_info[key])
@@ -133,7 +133,7 @@ class EpisodeRunner:
 
             self.t += 1
 
-        print(episode_return)
+        # print(episode_return)
         last_data = {
             "state": [self.env.get_stats()],
             # "avail_actions": [self.env.get_avail_actions()],

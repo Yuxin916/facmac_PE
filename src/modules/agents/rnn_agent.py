@@ -59,5 +59,5 @@ class RNNAgent(nn.Module):
         x = F.relu(self.fc1(inputs))
         h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim)
         h = self.rnn(x, h_in)
-        actions = F.tanh(self.fc2(h))
+        actions = torch.tanh(self.fc2(h))
         return {"actions": actions, "hidden_state": h}

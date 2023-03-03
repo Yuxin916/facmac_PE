@@ -74,7 +74,7 @@ ou_sigma: 0.2 # D
 ou_noise_scale: 0.3
 final_ou_noise_scale: 0.
 ou_stop_episode: 100 # training noise goes to zero after this episode TODO
-start_steps: 0 # Number of steps for uniform-random action selection, before running real policy. Helps exploration. #TODO: 目前设为10000
+start_steps: 10000 # Number of steps for uniform-random action selection, before running real policy. Helps exploration. #TODO: 目前设为10000
 
 
 # Actor
@@ -94,7 +94,7 @@ double_q: False
 optimizer: adam # rmsprop | adam
 optimizer_epsilon: 0.00000001 # TODO 1E-8
 target_update_mode: 'soft' # 'soft' | 'hard'
-target_update_tau: 0.003 # TODO： 从0.005改成0.001曲线变得更稳定？？？
+target_update_tau: 0.005 # TODO： 从0.005改成0.001曲线变得更稳定？？？
 optim_alpha: 0.99 # RMSProp alpha
 optim_eps: 0.00001 # RMSProp epsilon
 grad_norm_clip: 10 # Reduce magnitude of gradients above this L2 norm
